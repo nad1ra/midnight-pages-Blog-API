@@ -1,11 +1,13 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(auto_now_add=True)
     role = models.CharField(
         max_length=20,
         choices=[
@@ -25,17 +27,11 @@ class CustomUser(AbstractUser):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profiles')
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profiles')
     bio = models.TextField(max_length=200)
     image = models.ImageField()
     following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
 
-    @property
-    def followers_count(self):
-        return self.followers.count()
 
-    @property
-    def following_count(self):
-        return self.following.count()
 
 
