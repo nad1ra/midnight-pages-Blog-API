@@ -1,10 +1,10 @@
 from rest_framework import serializers
-# from users.serializers import UserSerializer
+from users.serializers import CustomUserSerializer
 from .models import Post
 
 
 class PostSerializer(serializers.ModelSerializer):
-    # author = UserSerializer(read_only=True)
+    author = CustomUserSerializer(read_only=True)
     # likes_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
 
