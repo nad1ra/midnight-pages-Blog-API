@@ -28,7 +28,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         representation['username'] = instance.username
         representation['is_active'] = instance.is_active
         representation['is_verified'] = instance.is_verified
-        representation['date_joined'] = instance.date_joined.isoformat()
+        representation['date_joined'] = instance.date_joined.isoformat('iso_string')
         representation['role'] = instance.role
         return representation
 
@@ -40,6 +40,28 @@ class VerifyEmailSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("Token is required.")
         return value
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            user = CustomUser.objects.get(email=value)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("No user found with this email address.")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+    confirm_password = serializers.CharField(min_length=8)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError("The password and confirmation password do not match.")
+        return attrs
 
 
 class CustomUserSerializer(serializers.ModelSerializer):

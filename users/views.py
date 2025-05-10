@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser, UserProfile
-from .serializers import  UserRegisterSerializer, VerifyEmailSerializer, CustomUserSerializer, UserProfileSerializer
+from .services import send_password_reset_email, reset_password_confirm
+from .serializers import  UserRegisterSerializer, VerifyEmailSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer, CustomUserSerializer, UserProfileSerializer
 
 
 class UserRegistrationViewSet(viewsets.ModelViewSet):
@@ -41,6 +42,36 @@ class EmailVerificationViewSet(viewsets.ViewSet):
                 return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetViewSet(viewsets.ViewSet):
+    @action(detail=False, methods=['post'], url_path='password_reset')
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = CustomUser.objects.get(email=email)
+            send_password_reset_email(user)
+            return Response({"detail": "A token has been sent for password reset."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='password_reset/confirm')
+    def password_reset_confirm(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            new_password = serializer.validated_data['new_password']
+            confirm_password = serializer.validated_data['confirm_password']
+
+            try:
+                result = reset_password_confirm(token, new_password, confirm_password)
+                return Response(result, status=status.HTTP_200_OK)
+            except ValidationError as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
