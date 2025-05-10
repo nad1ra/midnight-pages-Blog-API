@@ -3,6 +3,8 @@ from rest_framework.exceptions import NotFound
 from .models import CustomUser, UserProfile
 
 
+# class UserRegisterSerializer(serializers.ModelSerializer):
+
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
