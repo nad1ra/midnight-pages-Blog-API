@@ -8,6 +8,7 @@ class Post(BaseModel):
     content = models.TextField()
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='posts')
 
+
     def __str__(self):
         return self.title
 

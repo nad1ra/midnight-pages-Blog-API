@@ -13,7 +13,6 @@ class CustomUser(AbstractUser):
         choices=[
             ('user', 'User'),
             ('admin', 'Admin'),
-            ('moderator', 'Moderator'),
         ],
         default='user'
     )
