@@ -10,8 +10,8 @@ from posts.models import Like
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
-    serializer_class = CommentSerializer()
-    pagination_class = CommentPagination()
+    serializer_class = CommentSerializer
+    pagination_class = CommentPagination
 
 class LikeCommentView(APIView):
     def post(self, request, pk=None):
