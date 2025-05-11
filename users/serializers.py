@@ -3,6 +3,7 @@ from rest_framework.exceptions import NotFound
 from .models import CustomUser, UserProfile
 
 
+
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)
@@ -12,8 +13,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'username', 'password', 'password_confirm']
 
     def validate(self, data):
+
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError("Password and confirm password do not match.")
+
+        if len(data['password']) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+        if not any(char.isdigit() for char in data['password']):
+            raise serializers.ValidationError("Password must contain at least one number.")
+        if not any(char.isalpha() for char in data['password']):
+            raise serializers.ValidationError("Password must contain at least one letter.")
         return data
 
     def create(self, validated_data):
@@ -28,7 +37,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         representation['username'] = instance.username
         representation['is_active'] = instance.is_active
         representation['is_verified'] = instance.is_verified
-        representation['date_joined'] = instance.date_joined.isoformat('iso_string')
+        representation['date_joined'] = instance.date_joined.isoformat() if instance.date_joined else None
         representation['role'] = instance.role
         return representation
 
@@ -50,7 +59,7 @@ class PasswordResetSerializer(serializers.Serializer):
             user = CustomUser.objects.get(email=value)
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("No user found with this email address.")
-        return value
+        return user
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -61,6 +70,16 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError("The password and confirmation password do not match.")
+
+        if len(attrs['new_password']) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+
+        if not any(char.isdigit() for char in attrs['new_password']):
+            raise serializers.ValidationError("Password must contain at least one number.")
+
+        if not any(char.isalpha() for char in attrs['new_password']):
+            raise serializers.ValidationError("Password must contain at least one letter.")
+
         return attrs
 
 
@@ -96,9 +115,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         username = self.context.get('username', None)
-        if username:
+
+        if username is not None:  # Ensure username exists in context
             user_profile = UserProfile.objects.filter(user__username=username).first()
             if not user_profile:
-                raise NotFound(detail="Profile is not found")
+                raise NotFound(detail="Profile not found for the given username.")
             return super().to_representation(user_profile)
+
         return super().to_representation(instance)
+
+
