@@ -1,8 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from core.base_models import BaseModel
 
 
-class CustomUser(AbstractUser):
+class CustomUser(AbstractUser, BaseModel):
     email = models.EmailField(unique=True)
     verification_token = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=False)
@@ -26,7 +27,7 @@ class CustomUser(AbstractUser):
 
 
 
-class UserProfile(models.Model):
+class UserProfile(BaseModel):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profiles')
     bio = models.TextField(max_length=200)
     image = models.ImageField()
