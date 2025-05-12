@@ -1,54 +1,42 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import generics, status, permissions
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser, UserProfile
 from .services import send_password_reset_email, reset_password_confirm
-from .serializers import  UserRegisterSerializer, VerifyEmailSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer, CustomUserSerializer, UserProfileSerializer
+from .serializers import (
+    UserRegisterSerializer,
+    VerifyEmailSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer,
+    CustomUserSerializer,
+    ProfileByUsernameSerializer,
+    UserProfileSerializer,
+)
 
 
-class UserRegistrationViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegisterSerializer
-
-    @action(detail=False, methods=['post'], url_path='register')
-    def register(self, request, *args, **kwargs):
-        data = request.data
-        user_serializer = self.get_serializer(data=data)
-
-        if user_serializer.is_valid():
-            user = user_serializer.save()
-            return Response(user_serializer.data, status=201)
-        else:
-            raise ValidationError(user_serializer.errors)
+    queryset = CustomUser.objects.all()
 
 
+class EmailVerificationView(APIView):
+    permission_classes = [permissions.AllowAny]
 
-class EmailVerificationViewSet(viewsets.ViewSet):
-    @action(detail=False, methods=['post'], url_path='verify-email')
-    def verify_email(self, request):
+    def post(self, request):
         serializer = VerifyEmailSerializer(data=request.data)
-
         if serializer.is_valid():
-            token = serializer.validated_data['token']
-            try:
-                user = CustomUser.objects.get(verification_token=token)
-                user.is_email_verified = True
-                user.verification_token = None
-                user.save()
-                return Response({"detail": "Email successfully verified."}, status=status.HTTP_200_OK)
-            except CustomUser.DoesNotExist:
-                return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            return Response({"detail": "Email successfully verified."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PasswordResetViewSet(viewsets.ViewSet):
-    @action(detail=False, methods=['post'], url_path='password_reset')
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         serializer = PasswordResetSerializer(data=request.data)
-
         if serializer.is_valid():
             email = serializer.validated_data['email']
             user = CustomUser.objects.get(email=email)
@@ -56,10 +44,12 @@ class PasswordResetViewSet(viewsets.ViewSet):
             return Response({"detail": "A token has been sent for password reset."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'], url_path='password_reset/confirm')
-    def password_reset_confirm(self, request):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
 
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
             token = serializer.validated_data['token']
             new_password = serializer.validated_data['new_password']
@@ -70,41 +60,46 @@ class PasswordResetViewSet(viewsets.ViewSet):
                 return Response(result, status=status.HTTP_200_OK)
             except ValidationError as e:
                 return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    permission_classes = [IsAuthenticated]
+class CurrentUserView(generics.RetrieveAPIView):
+    serializer_class = CustomUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'], url_path='me')
-    def get_user(self, request):
-        user = request.user
-        serializer = CustomUserSerializer(user)
+    def get_object(self):
+        return self.request.user
+
+
+class ProfileByUsernameView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, username=None):
+        profile = UserProfile.objects.filter(user__username=username).first()
+        if not profile:
+            raise NotFound("Profile not found.")
+        serializer = ProfileByUsernameSerializer(profile)
         return Response(serializer.data)
 
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
-    permission_classes = [IsAuthenticated]
+class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'], url_path='<str:username>')
-    def get_user_profile_by_username(self, request, username=None):
-        if username:
-            user_profile = UserProfile.objects.filter(user__username=username).first()
-            if not user_profile:
-                raise NotFound(detail="Profile not found")
-            serializer = UserProfileSerializer(user_profile)
-            return Response(serializer.data)
+    def get_object(self):
+        profile = UserProfile.objects.filter(user=self.request.user).first()
+        if not profile:
+            raise NotFound("User profile not found.")
+        return profile
 
-    @action(detail=False, methods=['get'], url_path='me')
-    def get_profile(self, request):
-        user_profile = UserProfile.objects.filter(user=request.user).first()
-        if not user_profile:
-            raise NotFound(detail="User profile not found.")
 
-        serializer = UserProfileSerializer(user_profile)
-        return Response(serializer.data)
 
+class LogoutView(APIView):
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

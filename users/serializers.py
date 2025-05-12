@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
 from .models import CustomUser, UserProfile
+from .services import send_verification_email
+import uuid
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -9,7 +10,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'username', 'password', 'password_confirm']
+        fields = ['id','email', 'username', 'password', 'password_confirm']
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:
@@ -19,6 +20,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         user = CustomUser.objects.create_user(**validated_data)
+        user.verification_token = str(uuid.uuid4())
+        user.save()
+        send_verification_email(user)
         return user
 
     def to_representation(self, instance):
@@ -27,6 +31,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         representation['email'] = instance.email
         representation['username'] = instance.username
         representation['is_active'] = instance.is_active
+        representation['is_staff'] = instance.is_staff
         representation['is_verified'] = instance.is_verified
         representation['date_joined'] = instance.date_joined.isoformat()
         representation['role'] = instance.role
@@ -40,6 +45,19 @@ class VerifyEmailSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("Token is required.")
         return value
+
+    def save(self, **kwargs):
+        token = self.validated_data['token']
+
+        try:
+            user = CustomUser.objects.get(verification_token=token)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError("Invalid or expired token.")
+
+        user.is_verified = True
+        user.verification_token = None
+        user.save()
+        return user
 
 
 class PasswordResetSerializer(serializers.Serializer):
@@ -77,11 +95,10 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'date_joined',
             'role'
         ]
-        read_only_fields = ['date_joined']
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    user = CustomUserSerializer()
+class ProfileByUsernameSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only=True)
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
 
@@ -95,11 +112,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_following_count(self, obj):
         return obj.following.count()
 
-    def to_representation(self, instance):
-        username = self.context.get('username', None)
-        if username:
-            user_profile = UserProfile.objects.filter(user__username=username).first()
-            if not user_profile:
-                raise NotFound(detail="Profile is not found")
-            return super().to_representation(user_profile)
-        return super().to_representation(instance)
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only=True)
+    followers_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'user', 'bio', 'image', 'followers_count', 'following_count']
+        read_only_fields = ['id', 'user', 'followers_count', 'following_count']
