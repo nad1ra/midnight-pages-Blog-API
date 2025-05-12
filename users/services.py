@@ -6,16 +6,24 @@ from .models import CustomUser
 
 
 def send_verification_email(user):
-    message = f'Please verify your email by sending the following token: {user.verification_token}'
-    send_mail('Email Verification', message, settings.EMAIL_HOST_USER, [user.email])
+    if not user.verification_token:
+        return
 
+    message = f'Please verify your email using this token:{user.verification_token}'
+
+
+    send_mail(
+        subject='Email Verification',
+        message=message,
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[user.email],
+        fail_silently=False
+    )
 
 def send_password_reset_email(user):
     token = default_token_generator.make_token(user)
-    message = (
-        f'Please follow the link below to reset your password:\n'
-        f'http://127.0.0.1:8000/api/auth/password_reset/confirm/', f'{token}'
-    )
+    message = f'Please follow the link below to reset your password:{token}'
+
 
     send_mail(
         'Password reset request',
