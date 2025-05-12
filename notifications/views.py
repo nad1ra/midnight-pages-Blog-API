@@ -1,8 +1,9 @@
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions
 from .models import Notification
 from .serializers import NotificationSerializer
+from core.permissions import IsOwner
 
 
 class NotificationListView(generics.ListCreateAPIView):
@@ -19,7 +20,7 @@ class NotificationListView(generics.ListCreateAPIView):
 class NotificationDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user)
@@ -28,7 +29,7 @@ class NotificationDetailView(generics.RetrieveUpdateDestroyAPIView):
 class NotificationMarkAsReadView(generics.UpdateAPIView):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def update(self, request, *args, **kwargs):
         notification = self.get_object()

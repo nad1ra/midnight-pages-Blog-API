@@ -7,17 +7,22 @@ from .models import Comment
 from .serializers import CommentSerializer
 from .pagination import CommentPagination
 from posts.models import Like
+from rest_framework import permissions
+from core.permissions import IsOwnerOrReadOnly
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer()
     pagination_class = CommentPagination()
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ['content', 'author__username', 'post__title']
 
 
 class LikeCommentView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, pk=None):
         try:
             comment = Comment.objects.get(id=pk)
@@ -33,6 +38,8 @@ class LikeCommentView(APIView):
 
 
 class UnlikeCommentView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, pk=None):
         try:
             comment = Comment.objects.get(id=pk)
