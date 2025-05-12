@@ -37,7 +37,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         representation['username'] = instance.username
         representation['is_active'] = instance.is_active
         representation['is_verified'] = instance.is_verified
-        representation['date_joined'] = instance.date_joined.isoformat() if instance.date_joined else None
+        representation['date_joined'] = instance.date_joined.isoformat()
         representation['role'] = instance.role
         return representation
 
@@ -96,6 +96,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'date_joined',
             'role'
         ]
+        read_only_fields = ['date_joined']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
