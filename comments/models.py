@@ -6,7 +6,7 @@ from posts.models import Post
 
 class Comment(BaseModel):
     content = models.TextField()
-    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, default=1, related_name='comments')
     post = models.ForeignKey('posts.Post', on_delete=models.CASCADE, related_name='comments')
 
     def __str__(self):
