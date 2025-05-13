@@ -1,4 +1,4 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -9,10 +9,11 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 
 
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'role']
 
     def retrieve(self, request):
         user = request.user
@@ -24,6 +25,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
 
     def retrieve(self, request, username=None):
         if username:
