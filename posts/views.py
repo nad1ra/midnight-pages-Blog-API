@@ -1,5 +1,4 @@
-from django.shortcuts import render
-from django_filters.views import FilterView
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters
 from rest_framework import viewsets
 from rest_framework.views import APIView
@@ -16,14 +15,12 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = PostPagination
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['title', 'content', 'author__username']
+    filterest_class = PostFilter
+    ordering_fields = ['title', 'created_at', 'author__username']
 
 
-class PostListView(FilterView):
-    model = Post
-    filterset_class = PostFilter
-    template_name = 'posts/post_list.html'
 
 
 class LikePostView(APIView):
