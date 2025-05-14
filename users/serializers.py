@@ -4,7 +4,6 @@ from .services import send_verification_email
 import uuid
 
 
-
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)

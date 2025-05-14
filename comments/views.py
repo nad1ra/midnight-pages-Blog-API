@@ -19,7 +19,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['content', 'author__username', 'post__title']
 
-
 class LikeCommentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
