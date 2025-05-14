@@ -6,8 +6,8 @@ from posts.models import Post
 
 class Comment(BaseModel):
     content = models.TextField()
-    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, default=1, related_name='comments')
-    post = models.ForeignKey('posts.Post', on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')  # Fixed: Removed default=1
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')  # Fixed: Direct reference to Post
 
-    def __str__(self):
-        return f'{self.author} commented {self.post}'
+    def __str__(self):  # Fixed: Added double underscores
+        return f'{self.author} commented on {self.post}'
