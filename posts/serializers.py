@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from users.serializers import CustomUserSerializer
 from .models import Post
+from core.validations import validate_title, validate_content
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -21,4 +22,10 @@ class PostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return Post.objects.create(user=user, **validated_data)
+        return Post.objects.create(author=user, **validated_data)
+
+    def validate_title(self, value):
+        return validate_title(value)
+
+    def validate_content(self, value):
+        return validate_content(value)

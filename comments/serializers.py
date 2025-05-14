@@ -3,6 +3,7 @@ from .models import Comment
 from posts.serializers import PostSerializer
 from posts.models import Post
 from users.serializers import CustomUserSerializer
+from core.validations import validate_content
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -26,3 +27,6 @@ class CommentSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         rep['post'] = PostSerializer(instance.post).data
         return rep
+
+    def validate_content(self, value):
+        return validate_content(value)
