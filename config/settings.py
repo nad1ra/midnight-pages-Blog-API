@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'posts',
     'comments',
     'notifications',
+    'core',
 ]
 
 AUTH_USER_MODEL = 'users.CustomUser'
