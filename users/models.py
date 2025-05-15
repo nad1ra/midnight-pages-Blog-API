@@ -1,11 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from core.base_models import BaseModel
+import uuid
 
 
 class CustomUser(AbstractUser, BaseModel):
     email = models.EmailField(unique=True)
-    verification_token = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
@@ -25,7 +25,9 @@ class CustomUser(AbstractUser, BaseModel):
     def __str__(self):
         return self.username
 
-
+    @staticmethod
+    def generate_token():
+        return str(uuid.uuid4())
 
 class UserProfile(BaseModel):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profiles')
