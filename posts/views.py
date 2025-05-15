@@ -2,7 +2,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.views import FilterView
 from rest_framework import viewsets, filters
 from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Post
@@ -12,17 +11,18 @@ from .pagination import PostPagination
 from posts.models import Like
 from rest_framework import permissions
 from core.permissions import IsOwnerOrReadOnly
+from rest_framework.views import APIView
+
 
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = PostPagination
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['title', 'content', 'author__username']
-    filterest_class = PostFilter
+    filterset_class = PostFilter
     ordering_fields = ['title', 'created_at', 'author__username']
 
 
