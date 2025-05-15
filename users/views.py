@@ -7,9 +7,10 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser, UserProfile
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework import status
 from .filters import UserFilter
+from django.core.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from .services import send_password_reset_email, reset_password_confirm
 from core.permissions import IsOwnerOrReadOnly, IsSelf
@@ -25,20 +26,15 @@ from .serializers import (
 
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+class UserRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['username', 'email', 'first_name', 'last_name', 'role']
-    filterset_class = UserFilter
-    ordering_fields = ['username', 'email', 'role', 'date_joined']
 
-
-    def retrieve(self, request):
-        user = request.user
-        serializer = CustomUserSerializer(user)
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "User registered successfully!"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -104,26 +100,21 @@ class ProfileByUsernameView(APIView):
 
 class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
-    permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
+    lookup_field = 'user__username'  # bu muhim!
 
-    
-    def retrieve(self, request, username=None):
+    def retrieve(self, request, *args, **kwargs):
+        username = self.kwargs.get('user__username')
         if username:
             user_profile = UserProfile.objects.filter(user__username=username).first()
-            if not user_profile:
-                raise NotFound(detail="Profile not found")
-            serializer = UserProfileSerializer(user_profile)
-            return Response(serializer.data)
-          
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+        else:
+            user_profile = UserProfile.objects.filter(user=request.user).first()
 
-
-        user_profile = UserProfile.objects.filter(user=request.user).first()
         if not user_profile:
-            raise NotFound(detail="User profile not found.")
+            raise NotFound(detail="Profile not found.")
 
         serializer = UserProfileSerializer(user_profile)
         return Response(serializer.data)
