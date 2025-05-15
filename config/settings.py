@@ -32,7 +32,9 @@ SECRET_KEY = 'django-insecure-i0+n@^x(lk2t37a8pcn152265qy4_o5+bxsu$1+(72rji15uge
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app', 'midnight-pages.uz']
+
 
 
 # Application definition
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     'posts',
     'comments',
     'notifications',
+    'core',
 ]
 
 AUTH_USER_MODEL = 'users.CustomUser'
@@ -94,7 +97,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.app'
 
 
 # Database
@@ -155,6 +158,7 @@ SIMPLE_JWT = {
 
 }
 
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -173,3 +177,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
+

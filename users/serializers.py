@@ -5,7 +5,6 @@ from .services import send_verification_token
 from .exceptions import TokenExpiredOrInvalid
 
 
-
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)

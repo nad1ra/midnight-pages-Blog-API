@@ -1,19 +1,36 @@
+from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.views import FilterView
+from rest_framework import viewsets, filters
 from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Post
+from .filters import PostFilter
 from .serializers import PostSerializer
 from .pagination import PostPagination
 from posts.models import Like
+from rest_framework import permissions
+from core.permissions import IsOwnerOrReadOnly
+from rest_framework.views import APIView
+
 
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = PostPagination
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['title', 'content', 'author__username']
+    filterset_class = PostFilter
+    ordering_fields = ['title', 'created_at', 'author__username']
+
+
+
 
 class LikePostView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, pk=None):
         try:
             post = Post.objects.get(id=pk)
@@ -28,12 +45,14 @@ class LikePostView(APIView):
             return Response({"detail": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 
 class UnlikePostView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, pk=None):
         try:
             post = Post.objects.get(id=pk)
             user = request.user
             like = Like.objects.get(post=post, user=user)
-            like.delete()  # Удаляем лайк
+            like.delete()
             return Response({"detail": "Post unliked successfully."}, status=status.HTTP_204_NO_CONTENT)
         except Like.DoesNotExist:
             return Response({"detail": "You have not liked this post yet."}, status=status.HTTP_400_BAD_REQUEST)
