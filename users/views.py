@@ -104,7 +104,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
-    lookup_field = 'user__username'  # bu muhim!
+    lookup_field = 'user__username'
 
     def retrieve(self, request, *args, **kwargs):
         username = self.kwargs.get('user__username')
