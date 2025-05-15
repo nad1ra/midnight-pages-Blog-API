@@ -1,12 +1,14 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, filters
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound, ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import CustomUser, UserProfile
-from core.permissions import IsOwner
+from core.permissions import IsOwnerOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 from .services import send_password_reset_email, reset_password_confirm
 from .serializers import (
     UserRegisterSerializer,
@@ -91,32 +93,23 @@ class ProfileByUsernameView(APIView):
 
 class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
+    lookup_field = 'user__username'
 
-    def get_object(self):
-        profile = UserProfile.objects.filter(user=self.request.user).first()
-        if not profile:
-            raise NotFound("User profile not found.")
-        return profile
+    def retrieve(self, request, *args, **kwargs):
+        username = self.kwargs.get('user__username')
+        if username:
+            user_profile = UserProfile.objects.filter(user__username=username).first()
+        else:
+            user_profile = UserProfile.objects.filter(user=request.user).first()
 
+        if not user_profile:
+            raise NotFound(detail="Profile not found.")
 
-class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request):
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -151,9 +144,6 @@ def unfollow_user(request, user_id):
     return Response({"message": "Unfollowed successfully!"}, status=status.HTTP_200_OK)
 
 
-
-
-
 class FollowingListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -173,3 +163,19 @@ class FollowersListView(APIView):
         followers = UserProfile.objects.filter(following=user)
         serializer = UserProfileSerializer(followers, many=True)
         return Response(serializer.data)
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
