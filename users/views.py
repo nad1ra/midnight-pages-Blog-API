@@ -1,11 +1,15 @@
 from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser, UserProfile
 from django.contrib.auth.models import User
+from rest_framework.decorators import api_view
+from rest_framework import status
+from .filters import UserFilter
 from rest_framework.decorators import api_view, permission_classes
 from .services import send_password_reset_email, reset_password_confirm
 from core.permissions import IsOwnerOrReadOnly, IsSelf
@@ -21,12 +25,20 @@ from .serializers import (
 
 
 
-class UserRegistrationView(generics.CreateAPIView):
-    serializer_class = UserRegisterSerializer
+class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username', 'email', 'first_name', 'last_name', 'role']
+    filterset_class = UserFilter
+    ordering_fields = ['username', 'email', 'role', 'date_joined']
+
+
+    def retrieve(self, request):
+        user = request.user
+        serializer = CustomUserSerializer(user)
 
 
 
@@ -90,19 +102,31 @@ class ProfileByUsernameView(APIView):
         return Response(serializer.data)
 
 
-class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
+class UserProfileViewSet(viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
+
+    
+    def retrieve(self, request, username=None):
+        if username:
+            user_profile = UserProfile.objects.filter(user__username=username).first()
+            if not user_profile:
+                raise NotFound(detail="Profile not found")
+            serializer = UserProfileSerializer(user_profile)
+            return Response(serializer.data)
+          
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
-    def get_object(self):
-        profile = UserProfile.objects.filter(user=self.request.user).first()
-        if not profile:
-            raise NotFound("User profile not found.")
-        return profile
 
+        user_profile = UserProfile.objects.filter(user=request.user).first()
+        if not user_profile:
+            raise NotFound(detail="User profile not found.")
 
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -142,6 +166,7 @@ def unfollow_user(request, user_id):
         return Response({"message": "Unfollowed successfully!"}, status=status.HTTP_200_OK)
 
     return Response({"message": "You are not following this user!"}, status=status.HTTP_400_BAD_REQUEST)
+  
   
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -1,11 +1,9 @@
 from rest_framework import viewsets, filters
-from rest_framework import viewsets
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Comment
 from .serializers import CommentSerializer
 from .pagination import CommentPagination
+from .filters import CommentFilter
 from posts.models import Like
 from rest_framework import permissions
 from core.permissions import IsOwnerOrReadOnly
@@ -13,11 +11,74 @@ from core.permissions import IsOwnerOrReadOnly
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    pagination_class = CommentPagination
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     serializer_class = CommentSerializer()
     pagination_class = CommentPagination()
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ['content', 'author__username', 'post__title']
+    filterset_class = CommentFilter
+    ordering_fields = ['content', 'author__username', 'post__id']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class LikeCommentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
