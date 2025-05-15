@@ -8,10 +8,10 @@ User = get_user_model()
 class NotificationAPITestCase(APITestCase):
     def setUp(self):
 
-        self.user = User.objects.create_user(username='testuser', password='testpass')
-        self.other_user = User.objects.create_user(username='otheruser', password='otherpass')
+        self.user = User.objects.create_user(username='testuser', password='pass1234')
+        self.other_user = User.objects.create_user(username='otheruser', password='pass1234')
 
-        self.client.login(username='testuser', password='testpass')
+        self.client.login(username='testuser', password='pass1234')
 
         self.notification = Notification.objects.create(
             user=self.user,
@@ -61,6 +61,6 @@ class NotificationAPITestCase(APITestCase):
 
     def test_permission_denied_for_other_user(self):
         self.client.logout()
-        self.client.login(username='otheruser', password='otherpass')
+        self.client.login(username='otheruser', password='pass1234')
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, 403)

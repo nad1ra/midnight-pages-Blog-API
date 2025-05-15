@@ -1,19 +1,13 @@
-from rest_framework import viewsets, filters
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status, permissions, filters
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
-from rest_framework.permissions import IsAuthenticated
-from .models import CustomUser, UserProfile
-from django.contrib.auth.models import User
 from rest_framework.views import APIView
-from rest_framework import status
-from .filters import UserFilter
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import NotFound, ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import CustomUser, UserProfile
+from core.permissions import IsOwnerOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 from .services import send_password_reset_email, reset_password_confirm
-from core.permissions import IsOwnerOrReadOnly, IsSelf
 from .serializers import (
     UserRegisterSerializer,
     VerifyEmailSerializer,
@@ -25,17 +19,9 @@ from .serializers import (
 )
 
 
-
-class UserRegistrationView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = UserRegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"detail": "User registered successfully!"}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+class UserRegistrationView(generics.CreateAPIView):
+    serializer_class = UserRegisterSerializer
+    queryset = CustomUser.objects.all()
 
 
 class EmailVerificationView(APIView):
@@ -82,7 +68,8 @@ class PasswordResetConfirmView(APIView):
 
 class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = CustomUserSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSelf]
+    permission_classes = [permissions.IsAuthenticated]
+
     def get_object(self):
         return self.request.user
 
@@ -98,8 +85,7 @@ class ProfileByUsernameView(APIView):
         return Response(serializer.data)
 
 
-class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
+class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
@@ -162,6 +148,15 @@ def unfollow_user(request, user_id):
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        profile = UserProfile.objects.filter(user=self.request.user).first()
+        if not profile:
+            raise NotFound("User profile not found.")
+        return profile
+
+
+
+class LogoutView(APIView):
     def post(self, request):
         try:
             refresh_token = request.data["refresh"]
