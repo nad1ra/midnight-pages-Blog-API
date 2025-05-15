@@ -5,18 +5,14 @@ from rest_framework.exceptions import ValidationError
 from .models import CustomUser
 
 
-def send_verification_email(user):
-    if not user.verification_token:
-        return
 
-    message = f'Please verify your email using this token:{user.verification_token}'
-
-
+def send_verification_token(email, token):
+    message = f'Please verify your email using this token: {token}'
     send_mail(
         subject='Email Verification',
         message=message,
         from_email=settings.EMAIL_HOST_USER,
-        recipient_list=[user.email],
+        recipient_list=[email],
         fail_silently=False
     )
 

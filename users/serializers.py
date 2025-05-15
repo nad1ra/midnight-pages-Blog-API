@@ -1,7 +1,8 @@
+from django.core.cache import cache
 from rest_framework import serializers
 from .models import CustomUser, UserProfile
-from .services import send_verification_email
-import uuid
+from .services import send_verification_token
+from .exceptions import TokenExpiredOrInvalid
 
 
 
@@ -28,11 +29,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
-        user = CustomUser.objects.create_user(**validated_data)
-        user.verification_token = str(uuid.uuid4())
-        user.save()
-        send_verification_email(user)
-        return user
+        token = CustomUser.generate_token()
+        cache.set(validated_data["email"], (token, validated_data), timeout=300)
+        cache.set(token, validated_data["email"], timeout=300)
+        send_verification_token(validated_data["email"], token)
+        return validated_data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -56,16 +57,19 @@ class VerifyEmailSerializer(serializers.Serializer):
         return value
 
     def save(self, **kwargs):
-        token = self.validated_data['token']
-
-        try:
-            user = CustomUser.objects.get(verification_token=token)
-        except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Invalid or expired token.")
-
-        user.is_verified = True
-        user.verification_token = None
-        user.save()
+        token = self.validated_data.get("token")
+        email = cache.get(token)
+        if not email:
+            raise TokenExpiredOrInvalid
+        cached = cache.get(email)
+        if not cached:
+            raise TokenExpiredOrInvalid
+        cached_token, user_data = cached
+        if cached_token != token:
+            raise TokenExpiredOrInvalid
+        user = CustomUser.objects.create_user(**user_data)
+        cache.delete(email)
+        cache.delete(token)
         return user
 
 

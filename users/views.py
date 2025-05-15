@@ -16,9 +16,16 @@ from .serializers import (
 )
 
 
-class UserRegistrationView(generics.CreateAPIView):
+class UserRegistrationView(APIView):
     serializer_class = UserRegisterSerializer
     queryset = CustomUser.objects.all()
+
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "A verification token has been sent to your emai."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmailVerificationView(APIView):
@@ -27,8 +34,8 @@ class EmailVerificationView(APIView):
     def post(self, request):
         serializer = VerifyEmailSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"detail": "Email successfully verified."}, status=status.HTTP_200_OK)
+            user = serializer.save()
+            return Response({"detail": f"{user.username} successfully verified."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
