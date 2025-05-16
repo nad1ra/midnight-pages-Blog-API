@@ -5,5 +5,8 @@ djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 pillow==11.2.1
 PyJWT==2.9.0
+python-dotenv==1.1.0
 sqlparse==0.5.3
 tzdata==2025.2
+django-redis
+python-dotenv
