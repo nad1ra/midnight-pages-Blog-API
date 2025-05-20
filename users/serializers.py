@@ -29,10 +29,29 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         token = CustomUser.generate_token()
-        cache.set(validated_data["email"], (token, validated_data), timeout=300)
-        cache.set(token, validated_data["email"], timeout=300)
-        send_verification_token(validated_data["email"], token)
-        return validated_data
+
+        # Create a user instance but do not save it yet
+        user = CustomUser(
+            email=validated_data["email"],
+            username=validated_data["username"]
+        )
+        user.set_password(validated_data["password"])
+        user.is_active = False
+        user.is_verified = False
+
+        # Cache user data for email verification
+        user_data = {
+            "email": user.email,
+            "username": user.username,
+            "password": validated_data["password"],  # required for final creation
+        }
+
+        cache.set(user.email, (token, user_data), timeout=300)
+        cache.set(token, user.email, timeout=300)
+        send_verification_token(user.email, token)
+
+        # Return an *unsaved* user instance for serialization
+        return user
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

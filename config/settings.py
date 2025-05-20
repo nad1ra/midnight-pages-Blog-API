@@ -33,7 +33,7 @@ SECRET_KEY = 'django-insecure-i0+n@^x(lk2t37a8pcn152265qy4_o5+bxsu$1+(72rji15uge
 DEBUG = True
 
 
-ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app', 'midnight-pages.uz']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.vercel.app', 'midnight-pages.uz']
 
 
 
@@ -54,6 +54,9 @@ INSTALLED_APPS = [
     'comments',
     'notifications',
     'core',
+    'corsheaders',
+    'django_extensions',
+
 ]
 
 AUTH_USER_MODEL = 'users.CustomUser'
@@ -71,6 +74,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -159,6 +163,7 @@ SIMPLE_JWT = {
 }
 
 
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -178,3 +183,35 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
 
+SITE_URL = "https://midnight-pages.com"
+
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "https://midnight-pages.uz",
+    "https://admin.midnight-pages.uz",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://midnight-pages.uz",
+    "https://admin.midnight-pages.uz",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+SECURE_SSL_REDIRECT = True
+
+if DEBUG:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False

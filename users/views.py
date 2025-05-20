@@ -8,7 +8,6 @@ from rest_framework.exceptions import NotFound, ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import CustomUser, UserProfile
 from core.permissions import IsOwnerOrReadOnly
-from rest_framework.permissions import IsAuthenticated
 from .services import send_password_reset_email, reset_password_confirm
 from .serializers import (
     UserRegisterSerializer,
@@ -180,10 +179,10 @@ class LogoutView(APIView):
         if not refresh_token:
             return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception:
             return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
