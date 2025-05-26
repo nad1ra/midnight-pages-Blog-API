@@ -68,11 +68,11 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
             token = serializer.validated_data['token']
-            new_password = serializer.validated_data['new_password']
-            confirm_password = serializer.validated_data['confirm_password']
+            password = serializer.validated_data['password']
+            password_confirm = serializer.validated_data['password_confirm']
 
             try:
-                result = reset_password_confirm(token, new_password, confirm_password)
+                result = reset_password_confirm(token, password, password_confirm)
                 return Response(result, status=status.HTTP_200_OK)
             except ValidationError as e:
                 return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
