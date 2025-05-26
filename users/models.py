@@ -36,8 +36,7 @@ class UserProfile(BaseModel):
     following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
 
 
-class Follow(models.Model):
-    pass
+
 
 
 
