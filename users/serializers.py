@@ -95,33 +95,27 @@ class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value):
-        try:
-            user = CustomUser.objects.get(email=value)
-        except CustomUser.DoesNotExist:
+        if not CustomUser.objects.filter(email__iexact=value, is_active=True).exists():
             raise serializers.ValidationError("No user found with this email address.")
-
-        if not user.is_verified:
-            raise serializers.ValidationError("This email has not been verified yet.")
-
         return value
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField()
-    new_password = serializers.CharField(min_length=8)
-    confirm_password = serializers.CharField(min_length=8)
+    password = serializers.CharField(min_length=8)
+    password_confirm = serializers.CharField(min_length=8)
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['confirm_password']:
+        if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("The password and confirmation password do not match.")
 
-        if len(attrs['new_password']) < 8:
+        if len(attrs['password']) < 8:
             raise serializers.ValidationError("Password must be at least 8 characters long.")
 
-        if not any(char.isdigit() for char in attrs['new_password']):
+        if not any(char.isdigit() for char in attrs['password']):
             raise serializers.ValidationError("Password must contain at least one number.")
 
-        if not any(char.isalpha() for char in attrs['new_password']):
+        if not any(char.isalpha() for char in attrs['password']):
             raise serializers.ValidationError("Password must contain at least one letter.")
 
         return attrs
@@ -167,4 +161,3 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['id', 'user', 'bio', 'image', 'followers_count', 'following_count']
         read_only_fields = ['id', 'user', 'followers_count', 'following_count']
-
