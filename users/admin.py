@@ -12,8 +12,4 @@ class CustomUserAdmin(UserAdmin):
 
     readonly_fields = ('date_joined',)
 
-    fieldsets = UserAdmin.fieldsets + (
-        (None, {
-            'fields': ('role', 'verification_token', 'is_verified'),
-        }),
-    )
+

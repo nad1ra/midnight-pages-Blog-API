@@ -99,7 +99,11 @@ class PasswordResetSerializer(serializers.Serializer):
             user = CustomUser.objects.get(email=value)
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("No user found with this email address.")
-        return user
+
+        if not user.is_verified:
+            raise serializers.ValidationError("This email has not been verified yet.")
+
+        return value
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
