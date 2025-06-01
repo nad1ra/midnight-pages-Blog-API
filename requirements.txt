@@ -10,3 +10,4 @@ sqlparse==0.5.3
 tzdata==2025.2
 django-redis
 python-dotenv
+django-cors-headers==4.0.0
