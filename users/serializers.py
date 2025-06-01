@@ -85,7 +85,12 @@ class VerifyEmailSerializer(serializers.Serializer):
         cached_token, user_data = cached
         if cached_token != token:
             raise TokenExpiredOrInvalid
+
         user = CustomUser.objects.create_user(**user_data)
+        user.is_verified = True
+        user.is_active = True
+        user.save()
+
         cache.delete(email)
         cache.delete(token)
         return user
@@ -159,5 +164,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'bio', 'image', 'followers_count', 'following_count']
-        read_only_fields = ['id', 'user', 'followers_count', 'following_count']
+        fields = [
+            'id',
+            'user',
+            'bio',
+            'image',
+            'followers_count',
+            'following_count'
+        ]
+        read_only_fields = [
+            'id',
+            'user'
+            'followers_count',
+            'following_count'
+        ]
+
+    def get_followers_count(self, obj):
+        return obj.followers.count()
+
+    def get_following_count(self, obj):
+        return obj.following.count()

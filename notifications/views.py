@@ -4,6 +4,8 @@ from rest_framework import permissions
 from .models import Notification
 from .serializers import NotificationSerializer
 from core.permissions import IsOwner
+from rest_framework.views import APIView
+
 
 
 class NotificationListView(generics.ListCreateAPIView):
@@ -11,6 +13,7 @@ class NotificationListView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        print("Request user:", self.request.user)
         return Notification.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -26,14 +29,17 @@ class NotificationDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Notification.objects.filter(user=self.request.user)
 
 
-class NotificationMarkAsReadView(generics.UpdateAPIView):
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer
+class NotificationMarkAsReadView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
-    def update(self, request, *args, **kwargs):
-        notification = self.get_object()
+    def post(self, request, pk):
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response({"detail": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
+
         notification.is_read = True
         notification.save()
 
-        return Response(self.get_serializer(notification).data, status=status.HTTP_200_OK)
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -20,6 +20,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     filterset_class = CommentFilter
     ordering_fields = ['content', 'author__username', 'post__id']
 
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        if post_id:
+            return Comment.objects.filter(post_id=post_id)
+        return Comment.objects.all()
+
+
+comment_list = CommentViewSet.as_view({
+    'get': 'list',
+    'post': 'create',
+})
 
 class LikeCommentView(APIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -40,7 +40,8 @@ class EmailVerificationView(APIView):
         serializer = VerifyEmailSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            return Response({"detail": f"{user.username} successfully verified."}, status=status.HTTP_200_OK)
+            response_data = CustomUserSerializer(user).data
+            return Response(response_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -100,54 +101,46 @@ class ProfileByUsernameView(APIView):
 class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    search_fields = ['bio', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
-    lookup_field = 'user__username'
 
-    def retrieve(self, request, *args, **kwargs):
-        username = self.kwargs.get('user__username')
-        if username:
-            user_profile = UserProfile.objects.filter(user__username=username).first()
-        else:
-            user_profile = UserProfile.objects.filter(user=request.user).first()
+    def get_queryset(self):
+        return UserProfile.objects.filter(user=self.request.user)
 
-        if not user_profile:
-            raise NotFound(detail="Profile not found.")
-
-        serializer = UserProfileSerializer(user_profile)
-        return Response(serializer.data)
+    def get_object(self):
+        return get_object_or_404(self.get_queryset())
 
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
-def follow_user(request, user_id):
+def follow_user_by_username(request, username):
     follower = request.user
 
-    if follower.id == user_id:
+    if follower.username == username:
         return Response({"message": "You cannot follow yourself!"}, status=status.HTTP_400_BAD_REQUEST)
 
-    user_to_follow = get_object_or_404(CustomUser, id=user_id)
+    user_to_follow = get_object_or_404(CustomUser, username=username)
+    user_to_follow_profile = get_object_or_404(UserProfile, user=user_to_follow)
     follower_profile = get_object_or_404(UserProfile, user=follower)
 
-    if user_to_follow in follower_profile.following.all():
+    if user_to_follow_profile in follower_profile.following.all():
         return Response({"message": "You are already following this user!"}, status=status.HTTP_400_BAD_REQUEST)
 
-    follower_profile.following.add(user_to_follow)
-    return Response({"message": "Followed successfully!"}, status=status.HTTP_200_OK)
+    follower_profile.following.add(user_to_follow_profile)
+    return Response({"message": f"You are now following {username}."}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
-def unfollow_user(request, user_id):
+def unfollow_user_by_username(request, username):
     follower = request.user
-    user_to_unfollow = get_object_or_404(CustomUser, id=user_id)
+    user_to_unfollow = get_object_or_404(CustomUser, username=username)
+    user_to_unfollow_profile = get_object_or_404(UserProfile, user=user_to_unfollow)
     follower_profile = get_object_or_404(UserProfile, user=follower)
 
-    if user_to_unfollow not in follower_profile.following.all():
+    if user_to_unfollow_profile not in follower_profile.following.all():
         return Response({"message": "You are not following this user!"}, status=status.HTTP_400_BAD_REQUEST)
 
-    follower_profile.following.remove(user_to_unfollow)
-    return Response({"message": "Unfollowed successfully!"}, status=status.HTTP_200_OK)
+    follower_profile.following.remove(user_to_unfollow_profile)
+    return Response({"message": f"You have unfollowed {username}."}, status=status.HTTP_200_OK)
 
 
 class FollowingListView(APIView):
@@ -166,7 +159,8 @@ class FollowersListView(APIView):
 
     def get(self, request, username):
         user = get_object_or_404(CustomUser, username=username)
-        followers = UserProfile.objects.filter(following=user)
+        user_profile = get_object_or_404(UserProfile, user=user)
+        followers = UserProfile.objects.filter(following=user_profile)
         serializer = UserProfileSerializer(followers, many=True)
         return Response(serializer.data)
 

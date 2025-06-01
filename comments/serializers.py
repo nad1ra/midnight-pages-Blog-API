@@ -21,7 +21,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return Comment.objects.create(user=user, **validated_data)
+        return Comment.objects.create(author=user, **validated_data)
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

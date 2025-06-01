@@ -13,8 +13,8 @@ urlpatterns = [
     path('users/me/', views.CurrentUserView.as_view(), name='current-user'),
     path('profiles/me/', views.CurrentUserProfileView.as_view(), name='current-user-profile'),
     path('profiles/<str:username>/', views.ProfileByUsernameView.as_view(), name='profile-by-username'),
-    path('users/<int:user_id>/follow/', views.follow_user, name='follow-user'),
-    path('users/<int:user_id>/unfollow/', views.unfollow_user, name='unfollow-user'),
+    path('profiles/<str:username>/follow/', views.follow_user_by_username, name='follow-user'),
+    path('profiles/<str:username>/unfollow/', views.unfollow_user_by_username, name='unfollow-user'),
     path('profiles/<str:username>/following/', views.FollowingListView.as_view(), name='following-list'),
     path('profiles/<str:username>/followers/', views.FollowersListView.as_view(), name='followers-list'),
 
